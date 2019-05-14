@@ -7,11 +7,14 @@ import redis
 from redis import Redis
 from rq import Queue
 import time
+from flask import render_template
+from flask import send_from_directory
 
-UPLOAD_FOLDER = '.'
+UPLOAD_FOLDER = '/var/lib/photos/'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
-queue = redis.StrictRedis(host='redis', port=6379, db=0)
+queue = redis.StrictRedis(host='redis')
+#queue = redis.StrictRedis(host='localhost', port=1234, db=0)
 channel = queue.pubsub()
 
 app = Flask(__name__)
@@ -24,20 +27,6 @@ def uploaded_file(filename):
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def read_pgm(pgmf):
-    """Return a raster of integers from a PGM as a list of lists."""
-    assert pgmf.readline() == 'P2\n'
-    pgmf.readline()
-    (width, height) = [int(i) for i in pgmf.readline().split()]
-    depth = int(pgmf.readline())
-    assert depth <= 255
-
-    raster = []
-    for y in range(height):
-        for y in range(width):
-            raster.append(ord(pgmf.read(1)))
-    return raster
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
@@ -52,34 +41,35 @@ def upload_file():
         if file.filename == '':
             flash('No selected file')
             return redirect(request.url)
-        #if file and allowed_file(file.filename):
         # TODO save the format and send it to redis queue
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         f = open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'r')
-        print("before")
-        lala = read_pgm(f)
-        print(len(lala))
-        queue.publish("image", 'start')
-        for i in range(0, len(lala)):
-            queue.publish("image", lala[i])
-            if i == 1000:
-                time.sleep(0.1)
-        queue.publish("image", 'stop')
+        print(filename)
 
+        queue.publish("image", 'start')
+        filter = int(request.form.get('filter'))
+
+        queue.publish("image", filter)
+      
+        for i in range(0, len(filename)):
+            queue.publish("image", filename[i])
+
+        queue.publish("image", 'stop')
         print("FINISH")
         #return redirect(url_for('uploaded_file',
         #                        filename=filename))
-    return '''
-    <!doctype html>
-    <title>Upload new File</title>
-    <h1>Upload new File</h1>
-    <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
-      <input type=submit value=Upload>
-    </form>
-    '''
+        if filter == 1:
+            result_filename = "blur-" + filename
+        elif filter == 2:
+            result_filename = "sharp-" + filename
+        else:
+            result_filename = "sobel-" + filename
 
+        time.sleep(4)
+        return redirect(url_for('uploaded_file', filename=result_filename))
+
+    return render_template('index.html')
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
 
