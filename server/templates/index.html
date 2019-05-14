@@ -1,0 +1,23 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	</head>
+	<body>
+		<!doctype html>
+		<title>Apply filter on your image</title>
+		<h1>Apply filter on your image </h1>
+		
+		<form method=post enctype=multipart/form-data>
+			Select filter
+			<select name="filter" class="btn btn-success dropdown-toggle">
+				<option value="1">Blur</option>
+				<option value="2">Sharp</option>
+				<option value="3">Sobel</option>
+		</select>
+
+			<input type=file name=file>
+			<input type=submit class="btn btn-success" value=Upload>
+		</form>
+		
+	</body>
+</html>
